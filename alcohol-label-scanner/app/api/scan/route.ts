@@ -9,6 +9,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
+    // Convert file to base64 for OCR service
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const imageBase64 = buffer.toString("base64");
+
     console.log("Dispatcher: Received file", file.name, file.size);
 
     // Get the base URL for internal API calls
@@ -18,22 +23,29 @@ export async function POST(request: Request) {
     console.log("Dispatcher: Calling OCR Service...");
     const ocrResponse = await fetch(`${origin}/api/ocr`, {
       method: "POST",
-      // In a real scenario, you'd pass the file or a reference to it
-      body: JSON.stringify({ fileName: file.name }), 
+      body: JSON.stringify({ 
+        imageBase64, 
+        imageType: file.type 
+      }),
+      headers: { "Content-Type": "application/json" }
     });
     const ocrData = await ocrResponse.json();
 
-    if (!ocrData.success) throw new Error("OCR Step Failed");
+    if (!ocrData.success) throw new Error("OCR Step Failed: " + (ocrData.error || "Unknown error"));
 
     // 2. Call Rules Engine
     console.log("Dispatcher: Calling Rules Engine...");
     const rulesResponse = await fetch(`${origin}/api/rules`, {
       method: "POST",
-      body: JSON.stringify(ocrData.data),
+      body: JSON.stringify({
+        data: ocrData.data,
+        expected: {} // Future: pass user-provided expected data here
+      }),
+      headers: { "Content-Type": "application/json" }
     });
     const rulesData = await rulesResponse.json();
 
-    if (!rulesData.success) throw new Error("Rules Step Failed");
+    if (!rulesData.success) throw new Error("Rules Step Failed: " + (rulesData.error || "Unknown error"));
 
     // 3. Call Database Service
     console.log("Dispatcher: Calling DB Service...");
@@ -44,10 +56,11 @@ export async function POST(request: Request) {
         ...rulesData.compliance,
         timestamp: new Date().toISOString(),
       }),
+      headers: { "Content-Type": "application/json" }
     });
     const dbData = await dbResponse.json();
 
-    if (!dbData.success) throw new Error("DB Step Failed");
+    if (!dbData.success) throw new Error("DB Step Failed: " + (dbData.error || "Unknown error"));
 
     return NextResponse.json({
       success: true,
