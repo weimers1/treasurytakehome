@@ -58,7 +58,7 @@ export default function Scanner() {
     if (nativeCameraInputRef.current) nativeCameraInputRef.current.value = "";
   };
 
-  // Mock Upload to API
+  // Upload to API
   const handleUpload = async () => {
     if (!file) return;
 
@@ -66,14 +66,26 @@ export default function Scanner() {
     setUploadStatus("idle");
 
     try {
-      console.log("Uploading file to API:", file.name);
-      // Placeholder for future API integration
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const formData = new FormData();
+      formData.append("label", file);
+
+      const response = await fetch("/api/scan", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Upload failed");
+      }
+
+      console.log("Scan complete:", result);
       setUploadStatus("success");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Upload failed:", err);
       setUploadStatus("error");
-      setError("Failed to upload image. Please try again.");
+      setError(err.message || "Failed to upload image. Please try again.");
     } finally {
       setIsUploading(false);
     }
@@ -97,7 +109,7 @@ export default function Scanner() {
         ) : (
           /* Empty State / Options */
           <div className="flex h-full flex-col items-center justify-center p-8 text-center">
-            <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 max-w-md">
+            <div className="grid w-full gap-4 grid-cols-2 max-w-md">
               <button
                 onClick={() => nativeCameraInputRef.current?.click()}
                 className="flex flex-col items-center justify-center gap-3 rounded-xl bg-white p-6 shadow-sm ring-1 ring-zinc-200 transition-all hover:bg-zinc-50 active:scale-95 dark:bg-zinc-800 dark:ring-zinc-700 dark:hover:bg-zinc-700"
