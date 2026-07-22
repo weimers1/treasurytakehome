@@ -37,20 +37,14 @@ export async function POST(request: Request) {
     // 3. Initialize SDK inside request handler with verified key
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    // 4. Configure model using 'gemini-2.0-flash' (active, high-throughput, multimodal)
+    // 4. Configure model using 'gemini-3.1-flash-lite' (as requested)
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.0-flash", 
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.1, // Low randomness for fast, deterministic extraction
-      }
+      model: "gemini-3.1-flash-lite",
     });
 
-    const prompt = `
-      Act as an expert TTB (Tax and Trade Bureau) label specialist.
-      Analyze this alcohol label image and extract the following information in strict JSON format.
-
-      Fields to extract:
+    const prompt = `Extract and transcribe all written or typed text from this document exactly as it appears. 
+      
+      Then, act as an expert TTB (Tax and Trade Bureau) label specialist and extract the following information in strict JSON format:
       1. brand_name: The primary brand name shown on the label.
       2. abv: The alcohol content percentage (e.g., "13.5%", "40%").
       3. class_type: The product designation (e.g., "WHISKEY", "VODKA", "ALE", "WINE").
@@ -59,21 +53,25 @@ export async function POST(request: Request) {
       6. government_warning: The full text of the government warning if present.
       7. sulfite_declaration: Does it mention "CONTAINS SULFITES"? (boolean: true/false)
       8. raw_text: A concise dump of all readable text on the label.
-    `;
+      
+      Return ONLY the JSON object.`;
 
-    // 5. Execute multimodal Vision request
+    // 5. Execute multimodal Vision request (Implementation matched to working script style)
     const result = await model.generateContent([
-      prompt,
       {
         inlineData: {
-          data: pureBase64,
           mimeType: mime,
+          data: pureBase64,
         },
       },
+      prompt,
     ]);
 
     const response = await result.response;
-    const jsonText = response.text().trim();
+    const rawText = response.text();
+    
+    // Clean up potential markdown formatting in the response
+    const jsonText = rawText.replace(/```json\n?|\n?```/g, "").trim();
     const extractedData = JSON.parse(jsonText);
 
     return NextResponse.json({
