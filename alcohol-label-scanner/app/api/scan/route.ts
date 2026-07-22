@@ -27,18 +27,22 @@ export async function POST(request: Request) {
     console.log("Dispatcher: Running Rules Engine...");
     const complianceResults = await runRules(extractedData);
 
-    // 3. Save to Database
-    console.log("Dispatcher: Saving to Database...");
-    const dbResult = await saveScanResults({
+    // 3. Save to Database (Asynchronous/Non-blocking)
+    console.log("Dispatcher: Saving to Database (async)...");
+    const scanId = crypto.randomUUID();
+    
+    // We don't await this to keep the response fast
+    saveScanResults({
+      id: scanId,
       ...extractedData,
       ...complianceResults,
       timestamp: new Date().toISOString(),
-    });
+    }).catch(err => console.error("Async DB Save Error:", err));
 
     return NextResponse.json({
       success: true,
       message: "Processing complete",
-      scanId: dbResult.id,
+      scanId: scanId,
       results: {
         labelInfo: extractedData,
         compliance: complianceResults
