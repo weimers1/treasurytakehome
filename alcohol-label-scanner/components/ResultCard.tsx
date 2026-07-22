@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { CheckCircle2, AlertCircle, ChevronDown, ChevronUp, Info } from "lucide-react";
+import { CheckCircle2, AlertCircle, ChevronDown, ChevronUp, Info, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ResultCardProps {
@@ -11,9 +11,50 @@ interface ResultCardProps {
 
 export default function ResultCard({ data, isEditable = false }: ResultCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { labelInfo, compliance, timestamp } = data;
+
+  // Handle data mapping (handles both nested and flat structures)
+  const labelInfo = data.labelInfo || {
+    brand_name: data.brand_name,
+    abv: data.abv,
+    class_type: data.class_type,
+    sulfite_declaration: data.sulfite_declaration,
+    net_contents: data.net_contents,
+  };
+
+  const compliance = data.compliance || {
+    isValid: data.isValid,
+    checks: data.checks,
+    score: data.score,
+  };
+
+  const timestamp = data.timestamp;
   const isValid = compliance?.isValid;
   const score = compliance?.score;
+
+  // Formatting helper for various timestamp types
+  const formatTimestamp = (ts: any) => {
+    if (!ts) return "Recently scanned";
+    
+    // If it's an ISO string
+    if (typeof ts === "string") {
+      try {
+        return new Date(ts).toLocaleString();
+      } catch (e) {
+        return ts;
+      }
+    }
+
+    // If it's a Firestore-style timestamp object {seconds, nanoseconds}
+    if (ts && typeof ts === "object" && "seconds" in ts) {
+      try {
+        return new Date(ts.seconds * 1000).toLocaleString();
+      } catch (e) {
+        return "Unknown date";
+      }
+    }
+
+    return "Recently scanned";
+  };
 
   return (
     <div className={cn(
@@ -36,7 +77,7 @@ export default function ResultCard({ data, isEditable = false }: ResultCardProps
               {labelInfo?.brand_name || "Unknown Brand"}
             </h3>
             <p className="text-xs text-zinc-500">
-              {timestamp ? new Date(timestamp).toLocaleString() : "Recently scanned"}
+              {formatTimestamp(timestamp)}
             </p>
           </div>
         </div>
@@ -44,7 +85,7 @@ export default function ResultCard({ data, isEditable = false }: ResultCardProps
         <div className="flex items-center gap-4">
           <div className="text-right">
             <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-              Score: {score ?? 0}%
+              Score: {Math.round(score ?? 0)}%
             </div>
             <div className={cn(
               "text-[10px] font-bold uppercase tracking-wider",
@@ -77,7 +118,7 @@ export default function ResultCard({ data, isEditable = false }: ResultCardProps
               </div>
               <div className="space-y-1">
                 <span className="block text-[10px] font-medium text-zinc-400 uppercase">Class/Type</span>
-                <p className="text-sm text-zinc-800 dark:text-zinc-200">{labelInfo?.class_type || "N/A"}</p>
+                <p className="text-sm text-zinc-800 dark:text-zinc-200 truncate" title={labelInfo?.class_type}>{labelInfo?.class_type || "N/A"}</p>
               </div>
               <div className="space-y-1">
                 <span className="block text-[10px] font-medium text-zinc-400 uppercase">Sulfites</span>
@@ -90,27 +131,37 @@ export default function ResultCard({ data, isEditable = false }: ResultCardProps
           <div>
             <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Compliance Results</h4>
             <div className="space-y-2">
-              {compliance?.checks?.map((check: any, idx: number) => (
-                <div 
-                  key={idx} 
-                  className={cn(
-                    "flex items-start gap-3 rounded-lg border p-3",
-                    check.status === "pass" 
-                      ? "bg-green-50/50 border-green-100 dark:bg-green-900/10 dark:border-green-900/20" 
-                      : "bg-red-50/50 border-red-100 dark:bg-red-900/10 dark:border-red-900/20"
-                  )}
-                >
-                  {check.status === "pass" ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
-                  )}
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{check.rule}</p>
-                    <p className="text-xs text-zinc-500 leading-relaxed">{check.details}</p>
+              {compliance?.checks?.map((check: any, idx: number) => {
+                const status = check.status?.toUpperCase();
+                const isPass = status === "PASS";
+                const isWarning = status === "WARNING";
+                
+                return (
+                  <div 
+                    key={idx} 
+                    className={cn(
+                      "flex items-start gap-3 rounded-lg border p-3",
+                      isPass 
+                        ? "bg-green-50/50 border-green-100 dark:bg-green-900/10 dark:border-green-900/20" 
+                        : isWarning
+                        ? "bg-amber-50/50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/20"
+                        : "bg-red-50/50 border-red-100 dark:bg-red-900/10 dark:border-red-900/20"
+                    )}
+                  >
+                    {isPass ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
+                    ) : isWarning ? (
+                      <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
+                    )}
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{check.rule}</p>
+                      <p className="text-xs text-zinc-500 leading-relaxed">{check.details}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

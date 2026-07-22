@@ -17,9 +17,18 @@ export async function runRules(data: any, expected: any = {}) {
   const checks: any[] = [];
 
   // 1. GOVERNMENT WARNING
-  const gw = data.government_warning || "";
+  const gw = (data.government_warning || "").toUpperCase().replace(/\s+/g, " ");
+  const normalizedWarning = MANDATORY_WARNING.toUpperCase().replace(/\s+/g, " ");
+  
   const hasHeader = gw.includes("GOVERNMENT WARNING:");
-  const hasText = gw.includes(MANDATORY_WARNING);
+  // Check if it contains the mandatory text, allowing for slight variations in punctuation/spacing
+  const hasText = gw.includes(normalizedWarning) || 
+                  (gw.includes("ACCORDING TO THE SURGEON GENERAL") && 
+                   gw.includes("WOMEN SHOULD NOT DRINK ALCOHOLIC BEVERAGES") && 
+                   gw.includes("RISK OF BIRTH DEFECTS") && 
+                   gw.includes("CONSUMPTION OF ALCOHOLIC BEVERAGES IMPAIRS") &&
+                   gw.includes("ABILITY TO DRIVE A CAR"));
+
   checks.push({
     rule: "GOVERNMENT WARNING",
     status: hasHeader && hasText ? "PASS" : "FAIL",
