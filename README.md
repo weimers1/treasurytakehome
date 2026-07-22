@@ -60,7 +60,7 @@ Provides a detailed breakdown of every rule check, showing the specific evidence
 3. **Local Comparison:** For this prototype, the system compares detected data against itself or defaults. In a production environment, this would be linked to a COLA application database.
 4. **Environment Variables:** Firebase and Google AI keys are required in a `.env.local` file (see `package.json` for structure).
 5. **Missing Bulk Uploads:** I decided against implementing bulk uploads because I feel that the current functionality serves extremely well as a standard MVP. In a production environment, bulk uploads would be easily implemented in a future iteration.
-6. **Always-On Container (Cold Start Prevention):** For this demo, I have configured the Cloud Run service with `min-instances: 1`. While this incurs a small monthly cost (~$11-$13), it ensures that the reviewer experience is never delayed by serverless "cold starts," providing sub-second initial responsiveness for the first interaction.
+6. **Always-On Container (Cold Start Prevention):** For this demo, I have configured the Cloud Run service with `min-instances: 1`. This ensures that the demo experience is never delayed by serverless "cold starts," providing sub-second initial responsiveness for the first interaction.
 
 ---
 
