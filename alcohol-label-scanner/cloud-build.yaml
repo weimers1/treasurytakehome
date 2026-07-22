@@ -33,7 +33,7 @@ substitutions:
   _SERVICE_NAME: alcohol-label-scanner
   _DEPLOY_REGION: us-central1
   _AR_HOSTNAME: us-central1-docker.pkg.dev
-  _AR_REPOSITORY: cloud-run-source-deploy
+  _AR_REPOSITORY: portfolio-repo
 
 options:
   logging: CLOUD_LOGGING_ONLY
