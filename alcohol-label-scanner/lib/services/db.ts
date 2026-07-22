@@ -16,7 +16,6 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 
 export async function saveScanResults(data: any) {
-  console.log("Database Service: Writing to Firestore", data);
   
   try {
     // Use setDoc with a specific ID if provided, otherwise fallback to addDoc
@@ -34,7 +33,7 @@ export async function saveScanResults(data: any) {
       timestamp: serverTimestamp(),
     });
 
-    console.log("Database Service: Successfully wrote to Firestore with ID:", docRef.id);
+
     
     return {
       id: docRef.id
@@ -50,14 +49,14 @@ export async function saveScanResults(data: any) {
 
 export async function getScanHistory(maxItems: number = 50) {
   try {
-    console.log('getting scan history');
+
     const historyRef = collection(db, "history");
     const q = query(historyRef, orderBy("timestamp", "desc"), limit(maxItems));
     const querySnapshot = await getDocs(q);
     
     return querySnapshot.docs.map(doc => {
       const data = doc.data();
-      console.log(data);
+  
       return {
         id: doc.id,
         ...data,
@@ -71,7 +70,6 @@ export async function getScanHistory(maxItems: number = 50) {
 }
 
 export async function updateScanResult(id: string, data: any) {
-  console.log("Database Service: Updating document", id, data);
   try {
     const docRef = doc(db, "history", id);
     // Use setDoc with merge: true to create if missing or update if exists

@@ -17,18 +17,14 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(arrayBuffer);
     const imageBase64 = buffer.toString("base64");
 
-    console.log("Dispatcher: Received file", file.name, file.size);
 
     // 1. Perform OCR
-    console.log("Dispatcher: Performing OCR...");
     const extractedData = await performOCR(imageBase64, file.type);
 
     // 2. Run Rules Engine
-    console.log("Dispatcher: Running Rules Engine...");
     const complianceResults = await runRules(extractedData);
 
     // 3. Save to Database (Asynchronous/Non-blocking)
-    console.log("Dispatcher: Saving to Database (async)...");
     const scanId = crypto.randomUUID();
     
     // We don't await this to keep the response fast

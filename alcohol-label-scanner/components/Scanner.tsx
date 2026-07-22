@@ -131,10 +131,8 @@ export default function Scanner() {
 
     try {
       // 1. Instant client-side compression (~50ms)
-      console.log(`Original file size: ${(file.size / 1024).toFixed(1)} KB`);
       const compressedFile = await compressImageClient(file, 1024, 0.8);
-      console.log(`Compressed file size: ${(compressedFile.size / 1024).toFixed(1)} KB`);
-
+      
       // 2. Dispatch lightweight payload to server
       const formData = new FormData();
       formData.append("label", compressedFile);
@@ -150,7 +148,6 @@ export default function Scanner() {
         throw new Error(result.error || "Processing failed");
       }
 
-      console.log("Scan complete:", result);
       setScanResult({
         ...result.results,
         id: result.scanId

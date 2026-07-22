@@ -101,7 +101,6 @@ export default function ResultCard({ data, isEditable = false }: ResultCardProps
       const result = await updateScanResult(data.id, updateData);
       
       if (result.success) {
-        console.log("Save successful");
         // Update original statuses to the new ones after successful save
         if (localCompliance.checks) {
           setOriginalStatuses(localCompliance.checks.map((c: any) => c.status.toUpperCase()));

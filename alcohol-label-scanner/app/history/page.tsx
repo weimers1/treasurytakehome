@@ -16,7 +16,6 @@ export default function HistoryPage() {
     else setIsLoading(true);
 
     try {
-      console.log('getting scan history in frontend');
       const data = await getScanHistory();
       setHistory(data);
     } catch (error) {
@@ -44,7 +43,7 @@ export default function HistoryPage() {
           {isRefreshing ? "Refreshing..." : "Refresh"}
         </button>
       </div>
-...
+
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-sm text-blue-800 dark:text-blue-300">
         <p className="font-medium mb-1">Note on eventual consistency:</p>
         <p>
