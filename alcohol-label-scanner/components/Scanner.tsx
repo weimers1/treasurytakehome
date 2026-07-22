@@ -4,8 +4,68 @@ import React, { useState, useRef } from "react";
 import { Camera, Upload, X, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB input limit
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+/**
+ * Utility: Compresses and resizes images in browser memory using HTML Canvas
+ */
+async function compressImageClient(
+  file: File,
+  maxWidth = 1024,
+  quality = 0.8
+): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let { width, height } = img;
+
+        // Maintain aspect ratio while bounding within maxWidth
+        if (width > height && width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        } else if (height > maxWidth) {
+          width = Math.round((width * maxWidth) / height);
+          height = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(file); // Fallback to raw file if canvas context unavailable
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+}
 
 export default function Scanner() {
   const [file, setFile] = useState<File | null>(null);
@@ -13,6 +73,7 @@ export default function Scanner() {
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "success" | "error">("idle");
+  const [scanResult, setScanResult] = useState<any>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const nativeCameraInputRef = useRef<HTMLInputElement>(null);
@@ -21,6 +82,7 @@ export default function Scanner() {
   const handleFileSelection = (selectedFile: File) => {
     setError(null);
     setUploadStatus("idle");
+    setScanResult(null);
 
     if (!ALLOWED_TYPES.includes(selectedFile.type)) {
       setError("Invalid file type. Please upload a JPEG, PNG, or WebP image.");
@@ -53,21 +115,28 @@ export default function Scanner() {
     setPreview(null);
     setError(null);
     setUploadStatus("idle");
-    // Reset inputs so the same file can be re-selected if needed
+    setScanResult(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (nativeCameraInputRef.current) nativeCameraInputRef.current.value = "";
   };
 
-  // Upload to API
+  // Compressed Upload Handler
   const handleUpload = async () => {
     if (!file) return;
 
     setIsUploading(true);
     setUploadStatus("idle");
+    setError(null);
 
     try {
+      // 1. Instant client-side compression (~50ms)
+      console.log(`Original file size: ${(file.size / 1024).toFixed(1)} KB`);
+      const compressedFile = await compressImageClient(file, 1024, 0.8);
+      console.log(`Compressed file size: ${(compressedFile.size / 1024).toFixed(1)} KB`);
+
+      // 2. Dispatch lightweight payload to server
       const formData = new FormData();
-      formData.append("label", file);
+      formData.append("label", compressedFile);
 
       const response = await fetch("/api/scan", {
         method: "POST",
@@ -77,15 +146,16 @@ export default function Scanner() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || "Upload failed");
+        throw new Error(result.error || "Processing failed");
       }
 
       console.log("Scan complete:", result);
+      setScanResult(result.results);
       setUploadStatus("success");
     } catch (err: any) {
       console.error("Upload failed:", err);
       setUploadStatus("error");
-      setError(err.message || "Failed to upload image. Please try again.");
+      setError(err.message || "Failed to scan label. Please try again.");
     } finally {
       setIsUploading(false);
     }
@@ -107,9 +177,9 @@ export default function Scanner() {
             </button>
           </div>
         ) : (
-          /* Empty State / Options */
+          /* Empty State / Upload Options */
           <div className="flex h-full flex-col items-center justify-center p-8 text-center">
-            <div className="grid w-full gap-4 grid-cols-2 max-w-md">
+            <div className="grid w-full max-w-md grid-cols-2 gap-4">
               <button
                 onClick={() => nativeCameraInputRef.current?.click()}
                 className="flex flex-col items-center justify-center gap-3 rounded-xl bg-white p-6 shadow-sm ring-1 ring-zinc-200 transition-all hover:bg-zinc-50 active:scale-95 dark:bg-zinc-800 dark:ring-zinc-700 dark:hover:bg-zinc-700"
@@ -162,9 +232,23 @@ export default function Scanner() {
       )}
 
       {uploadStatus === "success" && (
-        <div className="flex items-center gap-2 rounded-lg bg-green-50 p-4 text-sm text-green-600 dark:bg-green-900/20 dark:text-green-400">
-          <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
-          <p>Label scanned successfully!</p>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 rounded-lg bg-green-50 p-4 text-sm text-green-600 dark:bg-green-900/20 dark:text-green-400">
+            <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+            <p>Label scanned successfully!</p>
+          </div>
+
+          {/* Quick Display of Extracted Data */}
+          {scanResult?.labelInfo && (
+            <div className="rounded-xl border border-zinc-200 bg-white p-4 text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">Extracted TTB Data</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div><span className="font-medium text-zinc-500">Brand:</span> {scanResult.labelInfo.brand_name || "N/A"}</div>
+                <div><span className="font-medium text-zinc-500">ABV:</span> {scanResult.labelInfo.abv || "N/A"}</div>
+                <div className="col-span-2"><span className="font-medium text-zinc-500">Class:</span> {scanResult.labelInfo.class_type || "N/A"}</div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
