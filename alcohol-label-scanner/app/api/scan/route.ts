@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { performOCR } from "@/lib/services/ocr";
+import { runRules } from "@/lib/services/rules";
+import { saveScanResults } from "@/lib/services/db";
 
 export async function POST(request: Request) {
   try {
@@ -16,59 +19,29 @@ export async function POST(request: Request) {
 
     console.log("Dispatcher: Received file", file.name, file.size);
 
-    // Get the base URL for internal API calls
-    const origin = new URL(request.url).origin;
+    // 1. Perform OCR
+    console.log("Dispatcher: Performing OCR...");
+    const extractedData = await performOCR(imageBase64, file.type);
 
-    // 1. Call OCR Service
-    console.log("Dispatcher: Calling OCR Service...");
-    const ocrResponse = await fetch(`${origin}/api/ocr`, {
-      method: "POST",
-      body: JSON.stringify({ 
-        imageBase64, 
-        imageType: file.type 
-      }),
-      headers: { "Content-Type": "application/json" }
+    // 2. Run Rules Engine
+    console.log("Dispatcher: Running Rules Engine...");
+    const complianceResults = await runRules(extractedData);
+
+    // 3. Save to Database
+    console.log("Dispatcher: Saving to Database...");
+    const dbResult = await saveScanResults({
+      ...extractedData,
+      ...complianceResults,
+      timestamp: new Date().toISOString(),
     });
-    const ocrData = await ocrResponse.json();
-
-    if (!ocrData.success) throw new Error("OCR Step Failed: " + (ocrData.error || "Unknown error"));
-
-    // 2. Call Rules Engine
-    console.log("Dispatcher: Calling Rules Engine...");
-    const rulesResponse = await fetch(`${origin}/api/rules`, {
-      method: "POST",
-      body: JSON.stringify({
-        data: ocrData.data,
-        expected: {} // Future: pass user-provided expected data here
-      }),
-      headers: { "Content-Type": "application/json" }
-    });
-    const rulesData = await rulesResponse.json();
-
-    if (!rulesData.success) throw new Error("Rules Step Failed: " + (rulesData.error || "Unknown error"));
-
-    // 3. Call Database Service
-    console.log("Dispatcher: Calling DB Service...");
-    const dbResponse = await fetch(`${origin}/api/db`, {
-      method: "POST",
-      body: JSON.stringify({
-        ...ocrData.data,
-        ...rulesData.compliance,
-        timestamp: new Date().toISOString(),
-      }),
-      headers: { "Content-Type": "application/json" }
-    });
-    const dbData = await dbResponse.json();
-
-    if (!dbData.success) throw new Error("DB Step Failed: " + (dbData.error || "Unknown error"));
 
     return NextResponse.json({
       success: true,
       message: "Processing complete",
-      scanId: dbData.id,
+      scanId: dbResult.id,
       results: {
-        labelInfo: ocrData.data,
-        compliance: rulesData.compliance
+        labelInfo: extractedData,
+        compliance: complianceResults
       }
     });
 
