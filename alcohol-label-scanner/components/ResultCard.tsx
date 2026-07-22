@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { CheckCircle2, AlertCircle, ChevronDown, ChevronUp, Info, AlertTriangle, Edit2, Check, X, Repeat } from "lucide-react";
+import { CheckCircle2, AlertCircle, ChevronDown, ChevronUp, Info, AlertTriangle, Edit2, Check, X, Repeat, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { updateScanResult } from "@/lib/services/db";
 
 interface ResultCardProps {
   data: any;
@@ -12,6 +13,7 @@ interface ResultCardProps {
 export default function ResultCard({ data, isEditable = false }: ResultCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Local state for frontend editing
   const [localLabelInfo, setLocalLabelInfo] = useState<any>({});
@@ -81,11 +83,47 @@ export default function ResultCard({ data, isEditable = false }: ResultCardProps
     });
   };
 
+  const handleSave = async () => {
+    if (!data.id) {
+      console.error("Cannot save: No scan ID found");
+      setIsEditing(false);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Collect all current local data for the update
+      const updateData = {
+        ...localLabelInfo,
+        ...localCompliance,
+      };
+
+      const result = await updateScanResult(data.id, updateData);
+      
+      if (result.success) {
+        console.log("Save successful");
+        // Update original statuses to the new ones after successful save
+        if (localCompliance.checks) {
+          setOriginalStatuses(localCompliance.checks.map((c: any) => c.status.toUpperCase()));
+        }
+      } else {
+        console.error("Save failed:", result.error);
+        alert("Failed to save changes. Please try again.");
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+    } finally {
+      setIsSaving(false);
+      setIsEditing(false);
+    }
+  };
+
   return (
     <div className={cn(
       "overflow-hidden rounded-xl border bg-white shadow-sm transition-all dark:bg-zinc-900",
       isValid ? "border-green-200 dark:border-green-900/30" : "border-red-200 dark:border-red-900/30",
-      isEditing && "ring-2 ring-blue-500 border-transparent"
+      isEditing && "ring-2 ring-blue-500 border-transparent",
+      isSaving && "opacity-70 pointer-events-none"
     )}>
       {/* Header Summary */}
       <div className="flex items-center justify-between p-4">
@@ -121,15 +159,20 @@ export default function ResultCard({ data, isEditable = false }: ResultCardProps
           {isEditable && (
             <button 
               onClick={() => {
-                setIsEditing(!isEditing);
-                if (!isExpanded) setIsExpanded(true);
+                if (isEditing) {
+                  handleSave();
+                } else {
+                  setIsEditing(true);
+                  if (!isExpanded) setIsExpanded(true);
+                }
               }}
+              disabled={isSaving}
               className={cn(
                 "p-2 rounded-lg transition-colors",
-                isEditing ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30" : "hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400"
+                isEditing ? "bg-blue-600 text-white hover:bg-blue-700 shadow-sm" : "hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400"
               )}
             >
-              {isEditing ? <Check className="h-5 w-5" /> : <Edit2 className="h-4 w-4" />}
+              {isSaving ? <RefreshCw className="h-5 w-5 animate-spin" /> : (isEditing ? <Check className="h-5 w-5" /> : <Edit2 className="h-4 w-4" />)}
             </button>
           )}
           

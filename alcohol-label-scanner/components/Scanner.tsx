@@ -151,7 +151,10 @@ export default function Scanner() {
       }
 
       console.log("Scan complete:", result);
-      setScanResult(result.results);
+      setScanResult({
+        ...result.results,
+        id: result.scanId
+      });
       setUploadStatus("success");
     } catch (err: any) {
       console.error("Upload failed:", err);

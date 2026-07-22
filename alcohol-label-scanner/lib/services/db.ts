@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, getDocs, limit } from "firebase/firestore";
+import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, getDocs, limit, doc, updateDoc, setDoc } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY,
@@ -19,6 +19,16 @@ export async function saveScanResults(data: any) {
   console.log("Database Service: Writing to Firestore", data);
   
   try {
+    // Use setDoc with a specific ID if provided, otherwise fallback to addDoc
+    if (data.id) {
+      const docRef = doc(db, "history", data.id);
+      await setDoc(docRef, {
+        ...data,
+        timestamp: serverTimestamp(),
+      });
+      return { id: data.id };
+    }
+
     const docRef = await addDoc(collection(db, "history"), {
       ...data,
       timestamp: serverTimestamp(),
@@ -57,5 +67,22 @@ export async function getScanHistory(maxItems: number = 50) {
   } catch (error) {
     console.error("Database Service: Error fetching history", error);
     return [];
+  }
+}
+
+export async function updateScanResult(id: string, data: any) {
+  console.log("Database Service: Updating document", id, data);
+  try {
+    const docRef = doc(db, "history", id);
+    // Use setDoc with merge: true to create if missing or update if exists
+    await setDoc(docRef, {
+      ...data,
+      lastUpdated: serverTimestamp(),
+    }, { merge: true });
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Database Service: Error updating document", error);
+    return { success: false, error };
   }
 }
