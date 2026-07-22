@@ -241,7 +241,7 @@ export default function Scanner() {
 
           {/* Detailed Result Card */}
           {scanResult && (
-            <ResultCard data={scanResult} />
+            <ResultCard data={scanResult} isEditable={true} />
           )}
         </div>
       )}
