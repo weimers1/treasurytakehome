@@ -27,6 +27,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased select-none`}
+      suppressHydrationWarning
     >
       <body className="flex h-full flex-col md:flex-row bg-white dark:bg-black">
         <Sidebar />
