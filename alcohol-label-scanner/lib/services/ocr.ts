@@ -54,5 +54,14 @@ export async function performOCR(imageBase64: string, imageType: string = "image
   ]);
 
   const response = await result.response;
-  return JSON.parse(response.text());
+  return JSON.parse(response.text()) as {
+    brand_name: string,
+    abv: string,
+    class_type: string,
+    net_contents: string,
+    producer_statement: string,
+    government_warning: string,
+    sulfite_declaration: boolean,
+    raw_text: string,
+  };
 }
