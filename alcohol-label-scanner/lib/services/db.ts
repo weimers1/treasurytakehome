@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, getDocs, limit } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY,
@@ -35,5 +35,27 @@ export async function saveScanResults(data: any) {
     return {
       id: "error-" + Date.now()
     };
+  }
+}
+
+export async function getScanHistory(maxItems: number = 50) {
+  try {
+    console.log('getting scan history');
+    const historyRef = collection(db, "history");
+    const q = query(historyRef, orderBy("timestamp", "desc"), limit(maxItems));
+    const querySnapshot = await getDocs(q);
+    
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      console.log(data);
+      return {
+        id: doc.id,
+        ...data,
+        timestamp: data.timestamp?.toDate?.() ? data.timestamp.toDate().toISOString() : data.timestamp
+      };
+    });
+  } catch (error) {
+    console.error("Database Service: Error fetching history", error);
+    return [];
   }
 }

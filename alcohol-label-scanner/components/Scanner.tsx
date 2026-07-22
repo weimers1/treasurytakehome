@@ -3,6 +3,7 @@
 import React, { useState, useRef } from "react";
 import { Camera, Upload, X, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ResultCard from "@/components/ResultCard";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB input limit
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -238,16 +239,9 @@ export default function Scanner() {
             <p>Label scanned successfully!</p>
           </div>
 
-          {/* Quick Display of Extracted Data */}
-          {scanResult?.labelInfo && (
-            <div className="rounded-xl border border-zinc-200 bg-white p-4 text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">Extracted TTB Data</h4>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><span className="font-medium text-zinc-500">Brand:</span> {scanResult.labelInfo.brand_name || "N/A"}</div>
-                <div><span className="font-medium text-zinc-500">ABV:</span> {scanResult.labelInfo.abv || "N/A"}</div>
-                <div className="col-span-2"><span className="font-medium text-zinc-500">Class:</span> {scanResult.labelInfo.class_type || "N/A"}</div>
-              </div>
-            </div>
+          {/* Detailed Result Card */}
+          {scanResult && (
+            <ResultCard data={scanResult} />
           )}
         </div>
       )}
