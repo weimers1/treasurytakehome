@@ -58,7 +58,7 @@ export default function AboutSamPage() {
               <div className="flex-shrink-0 h-10 w-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 font-bold">1</div>
               <div>
                 <h4 className="font-bold text-zinc-900 dark:text-zinc-100 mb-1">Modern Full-Stack Foundation</h4>
-                <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">Built end-to-end with <b>Next.js (App Router)</b>, <b>TypeScript</b>, <b>Tailwind CSS</b>, and <b>MUI</b>, designed as a single, lightweight containerized application for maximum performance and zero network overhead.</p>
+                <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">Built end-to-end with <b>Next.js (App Router)</b>, <b>TypeScript</b>, and <b>Tailwind CSS</b>, designed as a single, lightweight containerized application for maximum performance and zero network overhead.</p>
               </div>
             </div>
 
