@@ -8,12 +8,33 @@ import { updateScanResult } from "@/lib/services/db";
 interface ResultCardProps {
   data: any;
   isEditable?: boolean;
+  onEditingChange?: (isEditing: boolean) => void;
+  activeEditingId?: string | null;
 }
 
-export default function ResultCard({ data, isEditable = false }: ResultCardProps) {
+export default function ResultCard({ 
+  data, 
+  isEditable = false,
+  onEditingChange,
+  activeEditingId 
+}: ResultCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Sync internal isEditing with external activeEditingId
+  useEffect(() => {
+    if (activeEditingId !== undefined && activeEditingId !== data.id) {
+      setIsEditing(false);
+    }
+  }, [activeEditingId, data.id]);
+
+  // Notify parent of edit state changes
+  useEffect(() => {
+    if (onEditingChange) {
+      onEditingChange(isEditing);
+    }
+  }, [isEditing, onEditingChange]);
   
   // Local state for frontend editing
   const [localLabelInfo, setLocalLabelInfo] = useState<any>({});
