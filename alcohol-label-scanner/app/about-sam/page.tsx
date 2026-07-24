@@ -89,6 +89,14 @@ export default function AboutSamPage() {
             <div className="flex gap-4">
               <div className="flex-shrink-0 h-10 w-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 font-bold">5</div>
               <div>
+                <h4 className="font-bold text-zinc-900 dark:text-zinc-100 mb-1">Throttled Batch Processing</h4>
+                <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">Includes a resilient bulk upload workflow that manages concurrent API calls through an in-memory semaphore and client-side sequential queue, protecting upstream quotas during high-volume scans.</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 font-bold">6</div>
+              <div>
                 <h4 className="font-bold text-zinc-900 dark:text-zinc-100 mb-1">Cloud-Native & Serverless</h4>
                 <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">Fully containerized via <b>Docker</b> and deployed serverless on <b>Google Cloud Run</b> for auto-scaling and high availability.</p>
               </div>

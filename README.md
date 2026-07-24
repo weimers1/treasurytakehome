@@ -35,13 +35,17 @@ Performs word-for-word validation of the mandated federal warning statement.
 - **Result:** Average end-to-end processing (Upload -> OCR -> Rules -> UI) is **~3.0 seconds**.
 - **Optimization:** Achieved via client-side compression and leveraging the low-latency Gemini 3.1 Flash Lite model.
 
-### 4. Ultra-Simple UI
+### 4. Resilient Bulk Uploads
+Allows processing of up to 10 labels simultaneously with robust failure isolation.
+- **Implementation:** Sequential throttled processing (1.2s delay) with real-time status tracking and an in-memory server-side rate limiter to prevent API quota breaches.
+
+### 5. Ultra-Simple UI
 Designed for compliance agents with zero learning curve. Features:
 - Native camera access for mobile users.
 - Clear "Pass/Fail/Warning" status indicators.
 - One-click expandable results.
 
-### 5. Reviewer Workbench
+### 6. Reviewer Workbench
 Provides a detailed breakdown of every rule check, showing the specific evidence detected on the label alongside the final determination.
 
 ---
@@ -50,6 +54,7 @@ Provides a detailed breakdown of every rule check, showing the specific evidence
 - **Fuzzy Matching:** Integrated `Fuse.js` for intelligent handling of casing and minor text variations.
 - **Manual Overrides:** Fully functional editing mode allows reviewers to correct OCR misreads or toggle compliance statuses, which persist back to the database.
 - **Image Resilience:** The multimodal nature of Gemini 3.1 Flash Lite handles glare, odd angles, and stylized fonts far better than traditional OCR.
+- **Concurrency Control:** A custom in-memory semaphore in the API layer manages request volume and protects upstream AI services.
 
 ---
 
@@ -59,8 +64,7 @@ Provides a detailed breakdown of every rule check, showing the specific evidence
 2. **No Image Storage:** I explicitly chose **not** to store original images in Firestore/GCS to minimize cost and maximize processing speed. I store only the extracted text data.
 3. **Local Comparison:** For this prototype, the system compares detected data against itself or defaults. In a production environment, this would be linked to a COLA application database.
 4. **Environment Variables:** Firebase and Google AI keys are required in a `.env.local` file (see `package.json` for structure).
-5. **Missing Bulk Uploads:** I decided against implementing bulk uploads because I feel that the current functionality serves extremely well as a standard MVP. In a production environment, bulk uploads would be easily implemented in a future iteration.
-6. **Always-On Container (Cold Start Prevention):** For this demo, I have configured the Cloud Run service with `min-instances: 1`. This ensures that the demo experience is never delayed by serverless "cold starts," providing sub-second initial responsiveness for the first interaction.
+5. **Always-On Container (Cold Start Prevention):** For this demo, I have configured the Cloud Run service with `min-instances: 1`. This ensures that the demo experience is never delayed by serverless "cold starts," providing sub-second initial responsiveness for the first interaction.
 
 ---
 
