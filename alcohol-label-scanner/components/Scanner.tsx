@@ -5,10 +5,10 @@ import { Camera, Upload, X, RefreshCw, CheckCircle2, AlertCircle, Layers, Image 
 import { cn } from "@/lib/utils";
 import ResultCard from "@/components/ResultCard";
 import BatchProgress from "@/components/BatchProgress";
+import { MAX_QUEUE_SIZE } from "@/lib/rateLimiter";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB input limit
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const BATCH_LIMIT = 10;
 
 interface StagedFile {
   file: File;
@@ -111,7 +111,7 @@ export default function Scanner() {
     let limitReached = false;
 
     for (const selectedFile of newFiles) {
-      if (stagingQueue.length + validFiles.length >= BATCH_LIMIT) {
+      if (stagingQueue.length + validFiles.length >= MAX_QUEUE_SIZE) {
         limitReached = true;
         break;
       }
@@ -134,7 +134,7 @@ export default function Scanner() {
     }
 
     if (limitReached) {
-      setError(`Limited to ${BATCH_LIMIT} images per batch.`);
+      setError(`Limited to ${MAX_QUEUE_SIZE} images per batch.`);
     }
 
     if (isBulkMode) {
@@ -288,7 +288,7 @@ export default function Scanner() {
                     </button>
                   </div>
                 ))}
-                {stagingQueue.length < BATCH_LIMIT && (
+                {stagingQueue.length < MAX_QUEUE_SIZE && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-zinc-300 transition-colors hover:border-zinc-400 dark:border-zinc-700 dark:hover:border-zinc-600"
@@ -315,7 +315,7 @@ export default function Scanner() {
             <div className="flex items-center justify-between border-t border-zinc-200 pt-3 dark:border-zinc-800">
               {isBulkMode ? (
                 <span className="text-xs font-medium text-zinc-500">
-                  {stagingQueue.length} / {BATCH_LIMIT} images staged
+                  {stagingQueue.length} / {MAX_QUEUE_SIZE} images staged
                 </span>
               ) : <div />}
               <button onClick={clearAll} className="text-xs font-semibold text-red-500 hover:text-red-600">

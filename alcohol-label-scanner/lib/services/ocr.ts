@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { withRateLimit } from "@/lib/rateLimiter";
 
 let genAIInstance: GoogleGenerativeAI | null = null;
 
@@ -43,7 +44,7 @@ export async function performOCR(imageBase64: string, imageType: string = "image
       "raw_text": "Full transcription of all text on the label"
     }`;
 
-  const result = await model.generateContent([
+  const result = await withRateLimit(() => model.generateContent([
     {
       inlineData: {
         mimeType: mime,
@@ -51,7 +52,7 @@ export async function performOCR(imageBase64: string, imageType: string = "image
       },
     },
     prompt,
-  ]);
+  ]));
 
   const response = await result.response;
   return JSON.parse(response.text()) as {

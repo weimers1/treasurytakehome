@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { performOCR } from "@/lib/services/ocr";
 import { runRules } from "@/lib/services/rules";
 import { saveScanResults } from "@/lib/services/db";
+import { RateLimitError } from "@/lib/rateLimiter";
 
 export async function POST(request: Request) {
   try {
@@ -47,6 +48,14 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error("Dispatcher Error:", error);
+    
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ 
+        success: false, 
+        error: error.message 
+      }, { status: 429 });
+    }
+
     return NextResponse.json({ 
       success: false, 
       error: error.message || "Internal Server Error" 
